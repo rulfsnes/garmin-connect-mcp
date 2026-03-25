@@ -226,97 +226,133 @@ export class ActivityTools extends BaseDirectTool {
         };
       }
 
+      // getActivity returns IActivityDetails with nested DTOs (summaryDTO, metadataDTO, etc.)
+      // Cast to access the nested structure that the Garmin API actually returns
+      const raw = activity as unknown as Record<string, unknown>;
+      const s = (raw.summaryDTO || {}) as Record<string, unknown>;
+      const meta = (raw.metadataDTO || {}) as Record<string, unknown>;
+      const aType = (raw.activityTypeDTO || {}) as Record<string, unknown>;
+      const tz = (raw.timeZoneUnitDTO || {}) as Record<string, unknown>;
+      const access = (raw.accessControlRuleDTO || {}) as Record<string, unknown>;
+      const deviceMeta = (meta.deviceMetaDataDTO || {}) as Record<string, unknown>;
+
       // Create processed activity with explicit structure
       const processedActivity: Record<string, unknown> = {
-        activityId: activity.activityId,
+        activityId: raw.activityId,
         basic: {
-          name: activity.activityName,
-          description: activity.description,
+          name: raw.activityName,
+          description: raw.description,
           type: {
-            key: activity.activityType?.typeKey,
-            id: activity.activityType?.typeId,
-            parentId: activity.activityType?.parentTypeId
+            key: aType.typeKey,
+            id: aType.typeId,
+            parentId: aType.parentTypeId
           },
-          privacy: activity.privacy,
-          locationName: activity.locationName,
-          favorite: activity.favorite,
-          personalRecord: activity.pr
+          privacy: access.typeKey,
+          locationName: raw.locationName,
+          favorite: meta.favorite,
+          personalRecord: meta.personalRecord
         },
         timing: {
-          startTimeLocal: activity.startTimeLocal,
-          startTimeGMT: activity.startTimeGMT,
-          timeZone: activity.timeZoneId,
-          durationSeconds: activity.duration,
-          elapsedDurationSeconds: activity.elapsedDuration,
-          movingDurationSeconds: activity.movingDuration
+          startTimeLocal: s.startTimeLocal,
+          startTimeGMT: s.startTimeGMT,
+          timeZone: tz.unitKey,
+          durationSeconds: s.duration,
+          elapsedDurationSeconds: s.elapsedDuration,
+          movingDurationSeconds: s.movingDuration
         },
         performance: {
-          distance: activity.distance ? metersToKm(activity.distance) : null,
-          calories: activity.calories,
-          averageSpeed: activity.averageSpeed,
-          maxSpeed: activity.maxSpeed,
-          elevationGain: activity.elevationGain,
-          elevationLoss: activity.elevationLoss,
-          minElevation: activity.minElevation,
-          maxElevation: activity.maxElevation,
-          steps: activity.steps
+          distance: typeof s.distance === 'number' && s.distance ? metersToKm(s.distance) : null,
+          calories: s.calories,
+          averageSpeed: s.averageSpeed,
+          maxSpeed: s.maxSpeed,
+          elevationGain: s.elevationGain,
+          elevationLoss: s.elevationLoss,
+          minElevation: s.minElevation,
+          maxElevation: s.maxElevation,
+          steps: s.steps
+        },
+        power: {
+          averagePower: s.averagePower,
+          maxPower: s.maxPower,
+          normalizedPower: s.normalizedPower,
+          functionalThresholdPower: s.functionalThresholdPower,
+          maxPowerTwentyMinutes: s.maxPowerTwentyMinutes,
+          totalWork: s.totalWork,
+          trainingStressScore: s.trainingStressScore,
+          intensityFactor: s.intensityFactor,
+          leftTorqueEffectiveness: s.leftTorqueEffectiveness,
+          rightTorqueEffectiveness: s.rightTorqueEffectiveness,
+          leftPedalSmoothness: s.leftPedalSmoothness,
+          rightPedalSmoothness: s.rightPedalSmoothness
         },
         heartRate: {
-          average: activity.averageHR,
-          max: activity.maxHR
+          average: s.averageHR,
+          max: s.maxHR,
+          min: s.minHR
         },
         cadence: {
           running: {
-            average: activity.averageRunningCadenceInStepsPerMinute,
-            max: activity.maxRunningCadenceInStepsPerMinute
+            average: s.averageRunCadence,
+            max: s.maxRunCadence
           },
           biking: {
-            average: activity.averageBikingCadenceInRevPerMinute,
-            max: activity.maxBikingCadenceInRevPerMinute
+            average: s.averageBikeCadence,
+            max: s.maxBikeCadence
           }
         },
         training: {
-          aerobicEffect: activity.aerobicTrainingEffect,
-          anaerobicEffect: activity.anaerobicTrainingEffect,
-          trainingEffectLabel: activity.trainingEffectLabel,
-          vO2MaxValue: activity.vO2MaxValue,
-          trainingLoad: activity.activityTrainingLoad
+          aerobicEffect: s.trainingEffect,
+          anaerobicEffect: s.anaerobicTrainingEffect,
+          trainingEffectLabel: s.trainingEffectLabel,
+          aerobicMessage: s.aerobicTrainingEffectMessage,
+          anaerobicMessage: s.anaerobicTrainingEffectMessage,
+          trainingLoad: s.activityTrainingLoad
         },
         runningMetrics: {
-          avgVerticalOscillation: activity.avgVerticalOscillation,
-          avgGroundContactTime: activity.avgGroundContactTime,
-          avgStrideLength: activity.avgStrideLength,
-          avgVerticalRatio: activity.avgVerticalRatio,
-          avgGroundContactBalance: activity.avgGroundContactBalance
+          avgVerticalOscillation: s.verticalOscillation,
+          avgGroundContactTime: s.groundContactTime,
+          avgStrideLength: s.strideLength,
+          avgVerticalRatio: s.verticalRatio,
+          avgGroundContactBalance: s.groundContactBalanceLeft
         },
+        respiration: {
+          avgRespirationRate: s.avgRespirationRate,
+          minRespirationRate: s.minRespirationRate,
+          maxRespirationRate: s.maxRespirationRate
+        },
+        stamina: {
+          beginPotentialStamina: s.beginPotentialStamina,
+          endPotentialStamina: s.endPotentialStamina,
+          minAvailableStamina: s.minAvailableStamina
+        },
+        sensors: meta.sensors,
         location: {
           start: {
-            latitude: activity.startLatitude,
-            longitude: activity.startLongitude
+            latitude: s.startLatitude,
+            longitude: s.startLongitude
           },
           end: {
-            latitude: activity.endLatitude,
-            longitude: activity.endLongitude
+            latitude: s.endLatitude,
+            longitude: s.endLongitude
           },
-          hasPolyline: activity.hasPolyline
+          hasPolyline: meta.hasPolyline
         },
         device: {
-          manufacturer: activity.manufacturer,
-          deviceId: activity.deviceId
+          manufacturer: meta.manufacturer,
+          deviceId: deviceMeta.deviceId
         },
         laps: {
-          count: activity.lapCount,
-          hasSplits: activity.hasSplits,
-          minLapDurationSeconds: activity.minActivityLapDuration
+          count: meta.lapCount,
+          hasSplits: meta.hasSplits,
+          minLapDurationSeconds: s.minActivityLapDuration
         }
       };
 
       // Add split summaries if available (but check size)
-      // Note: IActivity types splitSummaries as [] but at runtime it contains split objects
-      if (activity.splitSummaries && Array.isArray(activity.splitSummaries) && activity.splitSummaries.length > 0) {
-        if (activity.splitSummaries.length < 20) {
-          const splits = activity.splitSummaries as Array<Record<string, unknown>>;
-          processedActivity.splitSummaries = splits.map((split) => ({
+      const splitSummaries = raw.splitSummaries as Array<Record<string, unknown>> | undefined;
+      if (splitSummaries && Array.isArray(splitSummaries) && splitSummaries.length > 0) {
+        if (splitSummaries.length < 20) {
+          processedActivity.splitSummaries = splitSummaries.map((split) => ({
             splitType: split.splitType,
             distance: typeof split.distance === 'number' ? metersToKm(split.distance) : null,
             durationSeconds: split.duration,
@@ -331,7 +367,7 @@ export class ActivityTools extends BaseDirectTool {
           }));
         } else {
           processedActivity.splitSummaries = {
-            count: activity.splitSummaries.length,
+            count: splitSummaries.length,
             note: "Too many splits to display - use a dedicated splits endpoint if needed"
           };
         }
