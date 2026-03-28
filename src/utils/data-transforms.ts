@@ -61,17 +61,28 @@ export const formatActivityType = (typeKey: string): string => {
  * Date utility functions for training volume aggregation
  */
 
+const createUTCDate = (year: number, monthIndex: number, day: number): Date =>
+  new Date(Date.UTC(year, monthIndex, day));
+
 /**
  * Get the start and end dates for a given ISO week number and year
  */
 export const getISOWeekRange = (year: number, week: number): { start: Date; end: Date } => {
   // ISO week 1 is the first week that contains at least 4 days of January
-  const jan4 = new Date(year, 0, 4);
-  const jan4Day = jan4.getDay() || 7; // Convert Sunday (0) to 7
-  const jan4Monday = new Date(jan4.getTime() - (jan4Day - 1) * 24 * 60 * 60 * 1000);
+  const jan4 = createUTCDate(year, 0, 4);
+  const jan4Day = jan4.getUTCDay() || 7; // Convert Sunday (0) to 7
+  const jan4Monday = createUTCDate(year, 0, 4 - (jan4Day - 1));
 
-  const startOfWeek = new Date(jan4Monday.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
-  const endOfWeek = new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const startOfWeek = createUTCDate(
+    jan4Monday.getUTCFullYear(),
+    jan4Monday.getUTCMonth(),
+    jan4Monday.getUTCDate() + (week - 1) * 7
+  );
+  const endOfWeek = createUTCDate(
+    startOfWeek.getUTCFullYear(),
+    startOfWeek.getUTCMonth(),
+    startOfWeek.getUTCDate() + 6
+  );
 
   return { start: startOfWeek, end: endOfWeek };
 };
@@ -103,8 +114,8 @@ export const getISOWeek = (date: Date): { year: number; week: number } => {
  * Get the start and end dates for a given month and year
  */
 export const getMonthRange = (year: number, month: number): { start: Date; end: Date } => {
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0); // Last day of the month
+  const start = createUTCDate(year, month - 1, 1);
+  const end = createUTCDate(year, month, 0); // Last day of the month
   return { start, end };
 };
 

@@ -120,6 +120,162 @@ export const mockActivitiesData = [
   }
 ];
 
+export const mockActivityDetailsData = {
+  activityId: 12345678901,
+  activityUUID: {
+    uuid: "11111111-2222-3333-4444-555555555555"
+  },
+  activityName: "Morning Run",
+  userProfileId: 12345,
+  isMultiSportParent: false,
+  activityTypeDTO: {
+    typeId: 1,
+    typeKey: "running",
+    parentTypeId: 17,
+    isHidden: false,
+    restricted: false,
+    trimmable: true
+  },
+  eventTypeDTO: {
+    typeId: 9,
+    typeKey: "uncategorized",
+    sortOrder: 1
+  },
+  accessControlRuleDTO: {
+    typeId: 1,
+    typeKey: "private"
+  },
+  timeZoneUnitDTO: {
+    unitId: 124,
+    unitKey: "Europe/Oslo",
+    factor: 3600,
+    timeZone: "Europe/Oslo"
+  },
+  metadataDTO: {
+    isOriginal: true,
+    deviceApplicationInstallationId: 123456,
+    fileFormat: {
+      formatId: 1,
+      formatKey: "fit"
+    },
+    lastUpdateDate: "2025-01-15T08:00:00.000Z",
+    uploadedDate: "2025-01-15T08:00:00.000Z",
+    hasPolyline: true,
+    hasChartData: true,
+    hasHrTimeInZones: true,
+    hasPowerTimeInZones: false,
+    userInfoDto: {
+      userProfilePk: 12345,
+      displayname: "runner",
+      fullname: "Test Runner",
+      profileImageUrlMedium: "https://example.com/profile-medium.jpg",
+      profileImageUrlSmall: "https://example.com/profile-small.jpg",
+      userPro: false
+    },
+    sensors: [{
+      manufacturer: "Garmin",
+      serialNumber: 123456,
+      sku: "forerunner",
+      fitProductNumber: 1001,
+      sourceType: "device",
+      antplusDeviceType: "watch",
+      softwareVersion: 1,
+      batteryStatus: "full"
+    }],
+    manufacturer: "Garmin",
+    lapCount: 5,
+    associatedWorkoutId: 0,
+    deviceMetaDataDTO: {
+      deviceId: "123456",
+      deviceTypePk: 1,
+      deviceVersionPk: 1
+    },
+    hasIntensityIntervals: false,
+    hasSplits: true,
+    personalRecord: true,
+    gcj02: false,
+    autoCalcCalories: true,
+    favorite: false,
+    manualActivity: false,
+    trimmed: false,
+    elevationCorrected: true
+  },
+  summaryDTO: {
+    startTimeLocal: "2025-01-15T07:00:00.000",
+    startTimeGMT: "2025-01-15T06:00:00.000",
+    startLatitude: 40.7128,
+    startLongitude: -74.0060,
+    distance: 5000,
+    duration: 2400,
+    movingDuration: 2380,
+    elapsedDuration: 2460,
+    elevationGain: 50,
+    elevationLoss: 45,
+    maxElevation: 150,
+    minElevation: 100,
+    averageSpeed: 2.08,
+    averageMovingSpeed: 2.1,
+    maxSpeed: 3.2,
+    calories: 320,
+    averageHR: 150,
+    maxHR: 175,
+    averageRunCadence: 175,
+    maxRunCadence: 185,
+    averageTemperature: 12,
+    maxTemperature: 15,
+    minTemperature: 9,
+    groundContactTime: 245,
+    groundContactBalanceLeft: 51.5,
+    strideLength: 0.96,
+    verticalOscillation: 8.5,
+    trainingEffect: 3.2,
+    anaerobicTrainingEffect: 1.1,
+    aerobicTrainingEffectMessage: "Maintaining",
+    anaerobicTrainingEffectMessage: "Minor benefit",
+    verticalRatio: 7.2,
+    endLatitude: 40.7130,
+    endLongitude: -74.0058,
+    maxVerticalSpeed: 0.5,
+    minActivityLapDuration: 480,
+    steps: 5200
+  },
+  locationName: "Central Park, New York",
+  splitSummaries: [
+    {
+      distance: 2500,
+      duration: 1200,
+      movingDuration: 1190,
+      elapsedDuration: 1230,
+      elevationGain: 25,
+      elevationLoss: 20,
+      averageSpeed: 2.1,
+      averageMovingSpeed: 2.12,
+      maxSpeed: 2.5,
+      calories: 160,
+      averageHR: 148,
+      maxHR: 165,
+      noOfSplits: 1,
+      splitType: "INTERVAL_ACTIVE"
+    },
+    {
+      distance: 2500,
+      duration: 1200,
+      movingDuration: 1190,
+      elapsedDuration: 1230,
+      elevationGain: 25,
+      elevationLoss: 25,
+      averageSpeed: 2.0,
+      averageMovingSpeed: 2.02,
+      maxSpeed: 2.3,
+      calories: 160,
+      averageHR: 152,
+      maxHR: 170,
+      noOfSplits: 1,
+      splitType: "INTERVAL_ACTIVE"
+    }
+  ]
+};
+
 export const mockStepsData = {
   data: {
     steps: 8542,

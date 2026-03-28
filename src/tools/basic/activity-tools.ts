@@ -24,7 +24,7 @@ import { createSummary } from '../../utils/summary-helpers.js';
 import { BaseDirectTool } from '../base/BaseDirectTool.js';
 import { GetActivitiesParams, GetActivityDetailsParams } from '../../types/tool-params.js';
 import { ToolResult } from '../../types/garmin-types.js';
-import { IActivity } from 'garmin-connect/dist/garmin/types/activity.js';
+import { IActivity, IActivityDetails } from 'garmin-connect/dist/garmin/types/activity.js';
 
 export class ActivityTools extends BaseDirectTool {
   constructor(garminClient: GarminClient) {
@@ -226,9 +226,8 @@ export class ActivityTools extends BaseDirectTool {
         };
       }
 
-      // getActivity returns IActivityDetails with nested DTOs (summaryDTO, metadataDTO, etc.)
-      // Cast to access the nested structure that the Garmin API actually returns
-      const raw = activity as unknown as Record<string, unknown>;
+      const detail = activity as unknown as IActivityDetails;
+      const raw = detail as unknown as Record<string, unknown>;
       const s = (raw.summaryDTO || {}) as Record<string, unknown>;
       const meta = (raw.metadataDTO || {}) as Record<string, unknown>;
       const aType = (raw.activityTypeDTO || {}) as Record<string, unknown>;
@@ -382,11 +381,11 @@ export class ActivityTools extends BaseDirectTool {
           activityId,
           error: "Activity data too large to display completely",
           summary: {
-            name: activity.activityName,
-            type: activity.activityType?.typeKey,
-            durationSeconds: activity.duration,
-            distance: activity.distance ? metersToKm(activity.distance) : null,
-            calories: activity.calories
+            name: detail.activityName,
+            type: typeof aType.typeKey === 'string' ? aType.typeKey : null,
+            durationSeconds: typeof s.duration === 'number' ? s.duration : null,
+            distance: typeof s.distance === 'number' ? metersToKm(s.distance) : null,
+            calories: typeof s.calories === 'number' ? s.calories : null
           },
           suggestion: "Activity contains extensive data. Consider requesting specific aspects."
         }, null, 2));

@@ -50,7 +50,7 @@ export const SPORT_TYPE_MAPPING = {
     displayOrder: 2,
   },
   swimming: {
-    sportTypeId: 5,
+    sportTypeId: 4,
     sportTypeKey: 'lap_swimming',
     displayOrder: 5,
   },

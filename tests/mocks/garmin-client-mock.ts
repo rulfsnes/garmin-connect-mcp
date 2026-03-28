@@ -3,6 +3,7 @@ import { GarminClient } from '../../src/client/garmin-client.js';
 import {
   mockSleepData,
   mockActivitiesData,
+  mockActivityDetailsData,
   mockStepsData,
   mockDailyStepsData,
   mockHeartRateData,
@@ -36,7 +37,7 @@ export const createMockGarminClient = (): GarminClient => {
 
     getActivity: vi.fn().mockImplementation((activity: { activityId: number }) => {
       if (activity.activityId === 12345678901) {
-        return Promise.resolve(mockActivitiesData[0]);
+        return Promise.resolve(mockActivityDetailsData);
       }
       return Promise.resolve(null);
     }),

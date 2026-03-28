@@ -227,7 +227,7 @@ Direct API access examples for sleep, activities, health metrics, overview, and 
 {
   "content": [{
     "type": "text",
-    "text": "{\"activityId\":12345678901,\"basic\":{\"name\":\"Morning Run\",\"type\":{\"key\":\"running\",\"id\":1},\"locationName\":\"Central Park\"},\"timing\":{\"startTimeLocal\":\"2025-10-18T06:30:00\",\"duration\":45,\"elapsedDuration\":47,\"movingDuration\":45},\"performance\":{\"distance\":8.2,\"calories\":520,\"averageSpeed\":10.93,\"maxSpeed\":15.2,\"elevationGain\":85,\"elevationLoss\":82},\"heartRate\":{\"average\":152,\"max\":172},\"training\":{\"aerobicEffect\":3.8,\"anaerobicEffect\":1.2,\"trainingEffectLabel\":\"Maintaining\",\"vO2MaxValue\":52},\"splitSummaries\":[{\"distance\":1000,\"duration\":330,\"averageSpeed\":10.91,\"averageHR\":148},{\"distance\":1000,\"duration\":325,\"averageSpeed\":11.08,\"averageHR\":152}]}"
+    "text": "{\"activityId\":12345678901,\"basic\":{\"name\":\"Morning Run\",\"type\":{\"key\":\"running\",\"id\":1},\"locationName\":\"Central Park\"},\"timing\":{\"startTimeLocal\":\"2025-10-18T06:30:00\",\"durationSeconds\":2700,\"elapsedDurationSeconds\":2820,\"movingDurationSeconds\":2700},\"performance\":{\"distance\":8.2,\"calories\":520,\"averageSpeed\":10.93,\"maxSpeed\":15.2,\"elevationGain\":85,\"elevationLoss\":82},\"heartRate\":{\"average\":152,\"max\":172},\"training\":{\"aerobicEffect\":3.8,\"anaerobicEffect\":1.2},\"splitSummaries\":[{\"distance\":1,\"durationSeconds\":330,\"averageSpeed\":10.91,\"averageHR\":148},{\"distance\":1,\"durationSeconds\":325,\"averageSpeed\":11.08,\"averageHR\":152}]}"
   }]
 }
 ```
@@ -636,6 +636,56 @@ Direct API access examples for sleep, activities, health metrics, overview, and 
 **See also:**
 - [Create Interval Workout](#example-create-interval-workout) for building workouts
 - [Race Taper Planning](./tracking-tools.md#example-race-taper-planning) for scheduling taper workouts
+
+---
+
+### Example: Create Strength Workout
+
+**Scenario:** Build a simple upper-body strength session for Garmin Connect.
+
+**MCP Request:**
+
+```json
+{
+  "tool": "create_strength_workout",
+  "parameters": {
+    "name": "Upper Body Strength",
+    "description": "Press, pull, and core work",
+    "exercises": [
+      {
+        "name": "Bench Press",
+        "sets": 3,
+        "reps": 8,
+        "weightKg": 80,
+        "restSeconds": 90
+      },
+      {
+        "name": "Pull Up",
+        "sets": 3,
+        "reps": 8,
+        "restSeconds": 60
+      },
+      {
+        "name": "Plank",
+        "sets": 3,
+        "durationSeconds": 60,
+        "restSeconds": 45
+      }
+    ]
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{\"success\":true,\"workoutId\":999888777,\"workoutName\":\"Upper Body Strength\",\"message\":\"Successfully created strength workout \\\"Upper Body Strength\\\"\",\"createdDate\":\"2025-10-19T10:00:00.000Z\"}"
+  }]
+}
+```
 
 ---
 

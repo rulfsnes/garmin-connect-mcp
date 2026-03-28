@@ -45,6 +45,10 @@ describe('workout-types', () => {
       expect(SPORT_TYPE_MAPPING.running.sportTypeKey).toBe('running');
       expect(SPORT_TYPE_MAPPING.cycling.sportTypeId).toBe(2);
       expect(SPORT_TYPE_MAPPING.cycling.sportTypeKey).toBe('cycling');
+      expect(SPORT_TYPE_MAPPING.swimming.sportTypeId).toBe(4);
+      expect(SPORT_TYPE_MAPPING.swimming.sportTypeKey).toBe('lap_swimming');
+      expect(SPORT_TYPE_MAPPING.strength_training.sportTypeId).toBe(5);
+      expect(SPORT_TYPE_MAPPING.strength_training.sportTypeKey).toBe('strength_training');
     });
 
     it('should have correct step type mapping', () => {

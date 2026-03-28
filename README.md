@@ -1,6 +1,6 @@
 # Garmin Connect MCP Server
 
-A Model Context Protocol (MCP) server that provides comprehensive access to Garmin Connect data including sleep analytics, health metrics, activities, and training volume analysis. Perfect for building AI-powered fitness insights, training analysis, and health tracking applications.
+A Model Context Protocol (MCP) server that provides comprehensive access to Garmin Connect data including sleep analytics, health metrics, activities, workout creation, workout scheduling, and training volume analysis. It is intended for AI-powered fitness insights, training analysis, workout planning, and health tracking applications.
 
 ## Table of Contents
 
@@ -20,6 +20,7 @@ This MCP server connects your AI assistant (Claude Desktop, Claude Code, or any 
 - **Real-time Health Insights**: Access sleep, heart rate, steps, stress, and body battery data
 - **Training Analytics**: Aggregate training volume by week, month, or custom date ranges
 - **Activity Analysis**: Retrieve detailed activity data with filtering and pagination
+- **Workout Management**: Create running and strength workouts, inspect workout details, and schedule them to the Garmin calendar
 - **Multi-metric Summaries**: Get comprehensive daily health overviews
 
 **Tech Stack**: TypeScript, Node.js 20+, MCP SDK, garmin-connect library
@@ -51,6 +52,13 @@ This MCP server connects your AI assistant (Claude Desktop, Claude Code, or any 
 - Activity type filtering (running, cycling, swimming, etc.)
 - Trend analysis (week-over-week, month-over-month)
 - Sport-specific breakdowns
+
+### 🗓️ Workout Management
+- Create structured running workouts with repeat blocks and targets
+- Create structured strength workouts with exercises, sets, reps, duration, weight, and rest
+- Schedule workouts to Garmin Connect calendar
+- Retrieve scheduled workouts and workout details
+- Delete workouts or unschedule them from the calendar
 
 ## Setup
 
@@ -365,6 +373,31 @@ Give me the full breakdown of my last run
 
 ---
 
+### Workout Tools
+
+#### `create_running_workout`
+Create a structured running workout with warmup, interval, recovery, cooldown, rest, and repeat steps.
+
+#### `create_strength_workout`
+Create a structured strength workout with named exercises, sets, reps or time, optional weight, and rest between exercises.
+
+#### `schedule_workout`
+Schedule an existing workout to a specific Garmin Connect calendar date.
+
+#### `get_scheduled_workouts`
+List scheduled workouts in a date range, including workout IDs, names, dates, and sport types.
+
+#### `get_workout_details`
+Retrieve the full workout definition for a single workout, including its step structure.
+
+#### `delete_workout`
+Permanently delete a workout from the workout library and all scheduled dates.
+
+#### `unschedule_workout`
+Remove a scheduled workout from the calendar while keeping the workout in the library.
+
+---
+
 ### Training Volume Tools
 
 #### `get_weekly_volume`
@@ -475,6 +508,13 @@ Show me daily breakdown of cycling for 2025-03-01/2025-03-31
 What are my health metrics (just steps and heart rate) for yesterday?
 ```
 
+### Workout Planning
+```
+Create a 5x1000m interval workout and schedule it for Tuesday
+Build a strength workout with squats, bench press, and planks
+Show me the workouts I have scheduled this week
+```
+
 ## Advanced Features
 
 ### Pagination
@@ -550,17 +590,21 @@ pnpm test:coverage    # Generate coverage report
 garmin-connect-mcp/
 ├── src/
 │   ├── client/           # Garmin Connect API client
+│   ├── constants/        # Shared constants and configuration
+│   ├── services/         # Builders, analyzers, and domain services
+│   ├── storage/          # Persistence helpers
 │   ├── tools/            # MCP tool implementations
-│   │   ├── overview-tools.ts
-│   │   ├── sleep-tools.ts
-│   │   ├── health-tools.ts
-│   │   ├── activity-tools.ts
-│   │   └── activity-volume-tools.ts
+│   │   ├── aggregation/
+│   │   ├── base/
+│   │   ├── basic/
+│   │   └── tracking/
 │   ├── types/            # TypeScript type definitions
 │   ├── utils/            # Helper functions
 │   └── index.ts          # Main server entry point
 ├── dist/                 # Built output
-└── __tests__/            # Test files
+└── tests/
+    ├── mocks/            # Test fixtures and client doubles
+    └── unit/             # Unit and integration-style tests
 ```
 
 ### Running Tests
@@ -656,6 +700,6 @@ MIT
 
 ## Version
 
-Current version: 0.1.0
+Current version: 0.4.0
 
 For updates and changelog, see the [releases page](https://github.com/your-repo/releases).

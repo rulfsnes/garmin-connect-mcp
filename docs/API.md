@@ -1,6 +1,6 @@
 # Garmin Connect MCP Server - API Reference
 
-**Version:** v0.1.0
+**Version:** v0.4.0
 **Last Updated:** 2025-10-19
 
 ## Table of Contents
@@ -46,7 +46,7 @@ The Garmin Connect MCP Server provides two distinct API layers for accessing hea
 
 ### Direct vs Advanced API
 
-#### Direct API (11 tools)
+#### Direct API
 
 **Purpose:** Fast, straightforward access to raw Garmin Connect data with minimal processing.
 
@@ -57,7 +57,7 @@ The Garmin Connect MCP Server provides two distinct API layers for accessing hea
 - **Foundation layer** - provides raw data for advanced tools
 - **Use when:** You need quick access to specific data points (today's sleep, recent activities, current weight)
 
-**Tools:** SleepTools, ActivityTools, HealthTools, OverviewTools, WorkoutTools (creation only)
+**Tools:** SleepTools, ActivityTools, HealthTools, OverviewTools, WorkoutTools
 
 #### Advanced API (~34 tools)
 
@@ -205,15 +205,23 @@ Retrieve recent activities with pagination and optional summary format.
   };
   activities: Array<{
     activityId: number;
-    name: string;
-    type: string;
-    date: string;
-    duration: number; // minutes
-    distance?: number; // km
-    calories?: number;
-    averageHR?: number;
-    maxHR?: number;
-    // ... additional fields when not using summary mode
+    // Summary mode returns compact Garmin activity list fields
+    activityName?: string;
+    startTimeLocal?: string;
+    duration?: number; // seconds
+    distance?: number; // meters
+
+    // Detailed mode returns nested sections
+    name?: string;
+    type?: { key?: string; id?: number; parentId?: number };
+    timing?: {
+      startTimeLocal?: string;
+      durationSeconds?: number;
+    };
+    metrics?: {
+      distance?: number; // km
+      calories?: number;
+    };
   }>;
 }
 ```
@@ -263,9 +271,11 @@ Retrieve comprehensive details for a specific activity including splits and adva
   };
   timing: {
     startTimeLocal: string;
-    duration: number; // minutes
-    elapsedDuration: number;
-    movingDuration: number;
+    startTimeGMT?: string;
+    timeZone?: string;
+    durationSeconds: number;
+    elapsedDurationSeconds?: number;
+    movingDurationSeconds?: number;
   };
   performance: {
     distance?: number; // km
@@ -285,9 +295,22 @@ Retrieve comprehensive details for a specific activity including splits and adva
     trainingEffectLabel?: string;
     vO2MaxValue?: number;
   };
+  location?: {
+    start?: { latitude?: number; longitude?: number };
+    end?: { latitude?: number; longitude?: number };
+  };
+  device?: {
+    manufacturer?: string;
+    deviceId?: string;
+  };
+  laps?: {
+    count?: number;
+    hasSplits?: boolean;
+    minLapDurationSeconds?: number;
+  };
   splitSummaries?: Array<{
     distance: number;
-    duration: number;
+    durationSeconds: number;
     averageSpeed: number;
     averageHR: number;
   }>;
@@ -665,7 +688,7 @@ Schedule a workout to a specific date in Garmin Connect calendar.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `workoutId` | number | Yes | - | ID from `create_running_workout` response |
+| `workoutId` | number | Yes | - | ID from `create_running_workout` or `create_strength_workout` response |
 | `date` | string | Yes | - | Date in YYYY-MM-DD format (e.g., '2025-10-13') |
 
 **Returns:**
@@ -694,6 +717,123 @@ const result = await workoutTools.scheduleWorkout({
 - Validation error if workoutId or date format invalid
 - Error if workout not found
 - Authentication errors if credentials invalid
+
+---
+
+#### `create_strength_workout`
+
+Create a structured strength workout with named exercises and set definitions.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `name` | string | Yes | - | Workout name |
+| `description` | string | No | - | Optional workout description |
+| `exercises` | StrengthExerciseInput[] | Yes | - | Array of exercises (at least one) |
+
+**StrengthExerciseInput Structure:**
+
+```typescript
+{
+  name: string;
+  sets: number;
+  reps?: number;
+  durationSeconds?: number;
+  weightKg?: number;
+  restSeconds?: number; // default 60
+}
+```
+
+**Returns:**
+
+```typescript
+{
+  success: boolean;
+  workoutId: number;
+  workoutName: string;
+  message: string;
+  createdDate: string;
+}
+```
+
+**Example:**
+
+```typescript
+const result = await workoutTools.createStrengthWorkout({
+  name: 'Upper Body Strength',
+  exercises: [
+    { name: 'Bench Press', sets: 3, reps: 8, weightKg: 80, restSeconds: 90 },
+    { name: 'Pull Up', sets: 3, reps: 8, restSeconds: 60 },
+    { name: 'Plank', sets: 3, durationSeconds: 60, restSeconds: 45 }
+  ]
+});
+```
+
+---
+
+#### `get_scheduled_workouts`
+
+Retrieve scheduled workouts for a date range.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `startDate` | string | No | current week Monday | Start of the date range |
+| `endDate` | string | No | current week Sunday | End of the date range |
+
+**Returns:**
+
+```typescript
+Array<{
+  scheduleId: number;
+  workoutScheduleId: number;
+  workoutId: number;
+  workoutName: string;
+  calendarDate: string;
+  sportType: {
+    sportTypeId: number;
+    sportTypeKey: string;
+  };
+}>
+```
+
+---
+
+#### `get_workout_details`
+
+Retrieve the full Garmin workout definition for a workout ID.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `workoutId` | number | Yes | - | Workout ID from a create or schedule response |
+
+---
+
+#### `delete_workout`
+
+Permanently delete a workout from the workout library.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `workoutId` | number | Yes | - | Workout ID to delete |
+
+---
+
+#### `unschedule_workout`
+
+Remove a scheduled workout from the calendar while keeping the workout in the library.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `scheduleId` | number | Yes | - | Schedule ID from `get_scheduled_workouts` |
 
 ---
 

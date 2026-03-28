@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ActivityTools } from '../../src/tools/basic/activity-tools.js';
 import { createMockGarminClient, createFailingMockGarminClient } from '../mocks/garmin-client-mock.js';
+import { mockActivityDetailsData } from '../mocks/garmin-data.js';
 
 describe('ActivityTools', () => {
   let activityTools: ActivityTools;
@@ -182,7 +183,7 @@ describe('ActivityTools', () => {
     it('should handle too many splits gracefully', async () => {
       // Mock activity with many splits
       const manySplisPactivity = {
-        ...mockClient.getActivity({ activityId: 12345678901 }),
+        ...mockActivityDetailsData,
         splitSummaries: new Array(25).fill({
           splitType: "INTERVAL_ACTIVE",
           duration: 1200,
