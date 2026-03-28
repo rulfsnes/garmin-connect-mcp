@@ -59,6 +59,11 @@ export const SPORT_TYPE_MAPPING = {
     sportTypeKey: 'other',
     displayOrder: 4,
   },
+  strength_training: {
+    sportTypeId: 13,
+    sportTypeKey: 'strength_training',
+    displayOrder: 13,
+  },
 } as const;
 
 export type SportType = typeof SPORT_TYPE_MAPPING[keyof typeof SPORT_TYPE_MAPPING];

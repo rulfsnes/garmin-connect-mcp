@@ -428,6 +428,70 @@ export interface GetWorkoutDetailsParams {
   workoutId: number;
 }
 
+/**
+ * A single exercise definition within a strength workout
+ */
+export interface StrengthExerciseInput {
+  /**
+   * Exercise name (used for display in Garmin Connect)
+   * @minLength 1
+   */
+  name: string;
+
+  /**
+   * Number of sets to perform
+   * @minimum 1
+   */
+  sets: number;
+
+  /**
+   * Number of reps per set (required if durationSeconds not specified)
+   * @minimum 1
+   */
+  reps?: number;
+
+  /**
+   * Duration per set in seconds (required if reps not specified)
+   * @minimum 1
+   */
+  durationSeconds?: number;
+
+  /**
+   * Weight in kilograms (omit for bodyweight exercises)
+   * @minimum 0
+   */
+  weightKg?: number;
+
+  /**
+   * Rest duration in seconds after completing all sets of this exercise
+   * @default 60
+   * @minimum 0
+   */
+  restSeconds?: number;
+}
+
+/**
+ * Parameters for createStrengthWorkout tool
+ */
+export interface CreateStrengthWorkoutParams {
+  /**
+   * Workout name (required)
+   * @minLength 1
+   */
+  name: string;
+
+  /**
+   * Optional workout description
+   */
+  description?: string;
+
+  /**
+   * Array of exercises (required, at least one exercise)
+   * @minItems 1
+   */
+  exercises: StrengthExerciseInput[];
+}
+
 // ============================================================================
 // Type Guards & Utilities
 // ============================================================================

@@ -10,6 +10,7 @@
  *
  * Tools provided:
  * - createRunningWorkout: Create structured running workout with steps (warmup, interval, recovery, cooldown, repeat)
+ * - createStrengthWorkout: Create structured strength training workout with exercises (sets, reps/duration, weight, rest)
  * - scheduleWorkout: Schedule a workout to a specific date in Garmin Connect calendar
  *
  * @category Tracking
@@ -21,11 +22,14 @@
 
 import { GarminClient } from '../../client/garmin-client.js';
 import { WorkoutBuilder, EndConditionFactory, TargetFactory } from '../../services/workoutBuilder.js';
+import { StrengthWorkoutBuilder } from '../../services/strengthWorkoutBuilder.js';
 import type { EndConditionData, Target, DistanceUnitName } from '../../types/workout.js';
 import { ToolResult } from '../../types/garmin-types.js';
 import { logger } from '../../utils/logger.js';
 import {
   CreateRunningWorkoutParams,
+  CreateStrengthWorkoutParams,
+  StrengthExerciseInput,
   ScheduleWorkoutParams,
   GetScheduledWorkoutsParams,
   DeleteWorkoutParams,
@@ -134,6 +138,135 @@ export class WorkoutTools {
         }],
         isError: true
       };
+    }
+  }
+
+  /**
+   * Create a strength training workout in Garmin Connect
+   *
+   * Validates input, builds workout payload using StrengthWorkoutBuilder,
+   * and uploads to Garmin API.
+   *
+   * @param params - Typed parameters for strength workout creation
+   * @returns MCP tool response with workout ID or error
+   */
+  async createStrengthWorkout(params: CreateStrengthWorkoutParams): Promise<ToolResult> {
+    try {
+      const validated = this.validateStrengthInput(params);
+
+      const builder = new StrengthWorkoutBuilder(validated.name);
+
+      if (validated.description) {
+        builder.setDescription(validated.description);
+      }
+
+      for (const exercise of validated.exercises) {
+        builder.addExercise(exercise);
+      }
+
+      const payload = builder.build();
+      const response = await this.garminClient.createWorkout(payload);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: true,
+            workoutId: response.workoutId,
+            workoutName: response.workoutName,
+            message: `Successfully created strength workout "${response.workoutName}"`,
+            createdDate: response.createdDate,
+          }, null, 2)
+        }]
+      };
+
+    } catch (error) {
+      logger.error('Failed to create strength workout:', error);
+      const errorMessage = this.transformError(error);
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: false,
+            error: errorMessage
+          }, null, 2)
+        }],
+        isError: true
+      };
+    }
+  }
+
+  /**
+   * Validate strength workout input
+   *
+   * Intentional 'any' for runtime validation before type conversion
+   */
+  private validateStrengthInput(args: any): CreateStrengthWorkoutParams {
+    if (!args.name || typeof args.name !== 'string' || args.name.trim() === '') {
+      throw new Error('Workout name is required and must be a non-empty string');
+    }
+
+    if (args.description !== undefined && typeof args.description !== 'string') {
+      throw new Error('Description must be a string');
+    }
+
+    if (!Array.isArray(args.exercises) || args.exercises.length === 0) {
+      throw new Error('Exercises array is required and must contain at least one exercise');
+    }
+
+    args.exercises.forEach((exercise: any, index: number) => {
+      this.validateExercise(exercise, index);
+    });
+
+    return {
+      name: args.name.trim(),
+      description: args.description?.trim(),
+      exercises: args.exercises as StrengthExerciseInput[],
+    };
+  }
+
+  /**
+   * Validate a single exercise input
+   *
+   * Intentional 'any' for runtime validation before type conversion
+   */
+  private validateExercise(exercise: any, index: number): void {
+    const prefix = `Exercise ${index + 1}`;
+
+    if (!exercise.name || typeof exercise.name !== 'string' || exercise.name.trim() === '') {
+      throw new Error(`${prefix}: name is required and must be a non-empty string`);
+    }
+
+    if (typeof exercise.sets !== 'number' || exercise.sets < 1 || !Number.isInteger(exercise.sets)) {
+      throw new Error(`${prefix}: sets must be a positive integer`);
+    }
+
+    if (exercise.reps === undefined && exercise.durationSeconds === undefined) {
+      throw new Error(`${prefix}: either reps or durationSeconds is required`);
+    }
+
+    if (exercise.reps !== undefined) {
+      if (typeof exercise.reps !== 'number' || exercise.reps < 1 || !Number.isInteger(exercise.reps)) {
+        throw new Error(`${prefix}: reps must be a positive integer`);
+      }
+    }
+
+    if (exercise.durationSeconds !== undefined) {
+      if (typeof exercise.durationSeconds !== 'number' || exercise.durationSeconds < 1) {
+        throw new Error(`${prefix}: durationSeconds must be a positive number`);
+      }
+    }
+
+    if (exercise.weightKg !== undefined) {
+      if (typeof exercise.weightKg !== 'number' || exercise.weightKg < 0) {
+        throw new Error(`${prefix}: weightKg must be >= 0`);
+      }
+    }
+
+    if (exercise.restSeconds !== undefined) {
+      if (typeof exercise.restSeconds !== 'number' || exercise.restSeconds < 0) {
+        throw new Error(`${prefix}: restSeconds must be >= 0`);
+      }
     }
   }
 

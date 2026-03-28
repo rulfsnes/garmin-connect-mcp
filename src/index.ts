@@ -487,6 +487,66 @@ class GarminConnectMCPServer {
               required: ["workoutId"],
             },
           },
+          {
+            name: "create_strength_workout",
+            description: "Create a structured strength training workout in Garmin Connect. Define exercises with sets, reps or duration, optional weight, and rest periods between exercises.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string",
+                  description: "Workout name (required)",
+                  minLength: 1,
+                },
+                description: {
+                  type: "string",
+                  description: "Optional workout description",
+                },
+                exercises: {
+                  type: "array",
+                  description: "Array of exercises (required, at least one exercise)",
+                  minItems: 1,
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: {
+                        type: "string",
+                        description: "Exercise name",
+                        minLength: 1,
+                      },
+                      sets: {
+                        type: "number",
+                        description: "Number of sets to perform",
+                        minimum: 1,
+                      },
+                      reps: {
+                        type: "number",
+                        description: "Number of reps per set (required if durationSeconds not specified)",
+                        minimum: 1,
+                      },
+                      durationSeconds: {
+                        type: "number",
+                        description: "Duration per set in seconds (required if reps not specified)",
+                        minimum: 1,
+                      },
+                      weightKg: {
+                        type: "number",
+                        description: "Weight in kilograms (omit for bodyweight exercises)",
+                        minimum: 0,
+                      },
+                      restSeconds: {
+                        type: "number",
+                        description: "Rest duration in seconds after all sets of this exercise (default: 60)",
+                        minimum: 0,
+                      },
+                    },
+                    required: ["name", "sets"],
+                  },
+                },
+              },
+              required: ["name", "exercises"],
+            },
+          },
         ],
       };
     });
@@ -548,6 +608,10 @@ class GarminConnectMCPServer {
           case "get_workout_details":
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             result = await this.workoutTools.getWorkoutDetails(request.params.arguments as any || {});
+            break;
+          case "create_strength_workout":
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result = await this.workoutTools.createStrengthWorkout(request.params.arguments as any || {});
             break;
           default:
             throw new Error(`Unknown tool: ${request.params.name}`);
