@@ -11,6 +11,7 @@
  * Tools provided:
  * - createRunningWorkout: Create structured running workout with steps (warmup, interval, recovery, cooldown, repeat)
  * - createStrengthWorkout: Create structured strength training workout with exercises (sets, reps/duration, weight, rest)
+ * - getWorkouts: List workouts from the Garmin Connect workout library
  * - scheduleWorkout: Schedule a workout to a specific date in Garmin Connect calendar
  *
  * @category Tracking
@@ -30,13 +31,14 @@ import {
   CreateRunningWorkoutParams,
   CreateStrengthWorkoutParams,
   StrengthExerciseInput,
+  GetWorkoutsParams,
   ScheduleWorkoutParams,
   GetScheduledWorkoutsParams,
   DeleteWorkoutParams,
   UnscheduleWorkoutParams,
   GetWorkoutDetailsParams,
 } from '../../types/tool-params.js';
-import type { IWorkoutDetail } from '../../client/garmin-client.js';
+import type { IWorkoutDetail, IWorkoutSummary } from '../../client/garmin-client.js';
 
 /**
  * Input schema types for MCP tool
@@ -71,6 +73,11 @@ interface CreateRunningWorkoutArgs {
 interface ScheduleWorkoutArgs {
   workoutId: number;
   date: string; // YYYY-MM-DD format
+}
+
+interface GetWorkoutsArgs {
+  start: number;
+  limit?: number;
 }
 
 /**
@@ -674,6 +681,117 @@ export class WorkoutTools {
     }
 
     return 'An unknown error occurred while creating the workout';
+  }
+
+  /**
+   * Get workouts from the Garmin Connect workout library
+   *
+   * Retrieves workouts from the saved workout library. When limit is omitted,
+   * all workouts are fetched starting from the provided start index.
+   *
+   * @param params - Typed parameters for workout list retrieval
+   * @returns MCP tool response with workout list or error
+   */
+  async getWorkouts(params: GetWorkoutsParams): Promise<ToolResult> {
+    try {
+      const validated = this.validateGetWorkoutsInput(params);
+      const workouts = await this.garminClient.getWorkouts(validated.start, validated.limit);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: true,
+            start: validated.start,
+            limit: validated.limit ?? null,
+            count: workouts.length,
+            workouts: workouts.map((workout) => this.formatWorkoutSummary(workout)),
+          }, null, 2)
+        }]
+      };
+    } catch (error) {
+      logger.error('Failed to get workouts:', error);
+
+      const errorMessage = this.transformGetWorkoutsError(error);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: false,
+            error: errorMessage
+          }, null, 2)
+        }],
+        isError: true
+      };
+    }
+  }
+
+  /**
+   * Validate get workouts input arguments
+   */
+  private validateGetWorkoutsInput(args: unknown): GetWorkoutsArgs {
+    const params = (args ?? {}) as Record<string, unknown>;
+    const start = params.start ?? 0;
+    const limit = params.limit;
+
+    if (typeof start !== 'number' || start < 0 || !Number.isInteger(start)) {
+      throw new Error('start must be a non-negative integer');
+    }
+
+    if (limit !== undefined && (typeof limit !== 'number' || limit <= 0 || !Number.isInteger(limit))) {
+      throw new Error('limit must be a positive integer');
+    }
+
+    return {
+      start,
+      limit: limit as number | undefined,
+    };
+  }
+
+  /**
+   * Transform get workouts errors to user-friendly messages
+   */
+  private transformGetWorkoutsError(error: unknown): string {
+    if (error instanceof Error) {
+      const message = error.message;
+
+      if (message.includes('required') || message.includes('must be')) {
+        return `Validation error: ${message}`;
+      }
+
+      if (message.includes('authentication') || message.includes('login')) {
+        return `Authentication error: Unable to connect to Garmin Connect. Please check your credentials.`;
+      }
+
+      if (message.includes('server error') || message.includes('503')) {
+        return `Garmin service error: The Garmin Connect service is temporarily unavailable. Please try again later.`;
+      }
+
+      return message;
+    }
+
+    return 'An unknown error occurred while retrieving workouts';
+  }
+
+  /**
+   * Format workout library items for user-friendly output
+   */
+  private formatWorkoutSummary(workout: IWorkoutSummary): Record<string, unknown> {
+    return {
+      workoutId: workout.workoutId ?? null,
+      workoutName: workout.workoutName,
+      description: workout.description || 'No description',
+      sportType: workout.sportType?.sportTypeKey || 'unknown',
+      estimatedDuration: workout.estimatedDurationInSecs
+        ? `${Math.floor(workout.estimatedDurationInSecs / 60)} minutes`
+        : 'N/A',
+      estimatedDistance: workout.estimatedDistanceInMeters
+        ? `${(workout.estimatedDistanceInMeters / 1000).toFixed(2)} km`
+        : 'N/A',
+      createdDate: workout.createdDate,
+      updatedDate: workout.updateDate,
+    };
   }
 
 

@@ -12,6 +12,7 @@ import {
   mockUserProfile,
   mockWorkoutResponse,
   mockWorkoutDetail,
+  mockWorkouts,
   mockWorkoutScheduleResponse,
   mockScheduledWorkouts,
   mockCalendarItems
@@ -94,6 +95,16 @@ export const createMockGarminClient = (): GarminClient => {
     getUserProfile: vi.fn().mockResolvedValue(mockUserProfile),
 
     createWorkout: vi.fn().mockResolvedValue(mockWorkoutResponse),
+
+    getWorkouts: vi.fn().mockImplementation((start: number = 0, limit?: number) => {
+      const workouts = [...mockWorkouts];
+
+      if (limit === undefined) {
+        return Promise.resolve(workouts.slice(start));
+      }
+
+      return Promise.resolve(workouts.slice(start, start + limit));
+    }),
 
     scheduleWorkout: vi.fn().mockImplementation((workoutId: number, date: Date) => {
       const calendarDate = date.toISOString().split('T')[0];
@@ -187,6 +198,7 @@ export const createFailingMockGarminClient = (): GarminClient => {
     getDailyHydration: vi.fn().mockRejectedValue(new Error('Failed to fetch hydration data')),
     getUserProfile: vi.fn().mockRejectedValue(new Error('Failed to fetch user profile')),
     createWorkout: vi.fn().mockRejectedValue(new Error('Failed to create workout')),
+    getWorkouts: vi.fn().mockRejectedValue(new Error('Failed to get workouts')),
     scheduleWorkout: vi.fn().mockRejectedValue(new Error('Failed to schedule workout')),
     getScheduledWorkouts: vi.fn().mockRejectedValue(new Error('Failed to retrieve scheduled workouts')),
     getWorkoutDetails: vi.fn().mockRejectedValue(new Error('Failed to get workout details')),

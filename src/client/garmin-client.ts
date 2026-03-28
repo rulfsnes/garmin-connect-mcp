@@ -75,6 +75,22 @@ export interface IWorkoutDetail {
   }>;
 }
 
+export interface IWorkoutSummary {
+  workoutId?: number;
+  ownerId?: number;
+  workoutName: string;
+  description?: string;
+  updateDate: string | Date;
+  createdDate: string | Date;
+  sportType: {
+    sportTypeId: number;
+    sportTypeKey: string;
+    displayOrder?: number;
+  };
+  estimatedDurationInSecs: number;
+  estimatedDistanceInMeters: number | null;
+}
+
 // Extended interface for internal Garmin Connect client methods
 interface ExtendedGarminClient {
   client: {
@@ -83,6 +99,7 @@ interface ExtendedGarminClient {
   };
   addWorkout: (payload: WorkoutPayload) => Promise<unknown>;
   deleteWorkout: (workout: { workoutId: string }) => Promise<unknown>;
+  getWorkouts: (start: number, limit: number) => Promise<IWorkoutSummary[]>;
   getWorkoutDetail: (workout: { workoutId: string }) => Promise<IWorkoutDetail>;
   getUserProfile: () => Promise<{ profileId: number }>;
   post: (url: string, data: unknown) => Promise<unknown>;
@@ -350,6 +367,59 @@ export class GarminClient {
     return await this.retryWithReauth(async () => {
       const client = await this.initialize();
       return await client.getDailyHydration(date);
+    });
+  }
+
+  async getWorkouts(start: number = 0, limit?: number): Promise<IWorkoutSummary[]> {
+    return await this.retryWithReauth(async () => {
+      const client = await this.initialize();
+      const workoutClient = client as unknown as ExtendedGarminClient;
+
+      try {
+        const allWorkouts: IWorkoutSummary[] = [];
+        let currentStart = start;
+        let remaining = limit ?? Number.POSITIVE_INFINITY;
+
+        while (remaining > 0) {
+          const pageLimit = Number.isFinite(remaining)
+            ? Math.min(remaining, 100)
+            : 100;
+
+          const page = await workoutClient.getWorkouts(currentStart, pageLimit);
+
+          if (!Array.isArray(page)) {
+            throw new Error('Invalid response from Garmin API: workouts response is not an array');
+          }
+
+          allWorkouts.push(...page);
+
+          if (page.length < pageLimit) {
+            break;
+          }
+
+          currentStart += page.length;
+          remaining -= page.length;
+        }
+
+        return allWorkouts;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        if (errorMessage.includes('400')) {
+          throw new Error(`Bad request: Invalid workout list parameters. ${errorMessage}`);
+        }
+        if (errorMessage.includes('401') || errorMessage.includes('403')) {
+          throw error;
+        }
+        if (errorMessage.includes('500')) {
+          throw new Error(`Garmin server error: ${errorMessage}`);
+        }
+        if (errorMessage.includes('503')) {
+          throw new Error(`Garmin service unavailable: ${errorMessage}`);
+        }
+
+        throw new Error(`Failed to get workouts: ${errorMessage}`);
+      }
     });
   }
 

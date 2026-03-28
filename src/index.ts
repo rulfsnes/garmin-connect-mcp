@@ -408,6 +408,25 @@ class GarminConnectMCPServer {
             },
           },
           {
+            name: "get_workouts",
+            description: "List workouts from the Garmin Connect workout library. By default, fetches all workouts. Supports optional pagination via start and limit.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                start: {
+                  type: "number",
+                  description: "Starting index for pagination (default: 0)",
+                  minimum: 0,
+                },
+                limit: {
+                  type: "number",
+                  description: "Maximum number of workouts to return. If omitted, all workouts are returned starting at start.",
+                  minimum: 1,
+                },
+              },
+            },
+          },
+          {
             name: "schedule_workout",
             description: "Schedule a workout to a specific date in Garmin Connect calendar. Use the workoutId from create_running_workout response.",
             inputSchema: {
@@ -589,6 +608,9 @@ class GarminConnectMCPServer {
           case "create_running_workout":
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             result = await this.workoutTools.createRunningWorkout(request.params.arguments as any || {});
+            break;
+          case "get_workouts":
+            result = await this.workoutTools.getWorkouts(request.params.arguments || {});
             break;
           case "schedule_workout":
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

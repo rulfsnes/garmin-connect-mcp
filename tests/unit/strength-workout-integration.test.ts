@@ -27,6 +27,7 @@ describe('WorkoutTools.createStrengthWorkout()', () => {
   beforeEach(() => {
     mockGarminClient = {
       createWorkout: vi.fn(),
+      getWorkouts: vi.fn(),
       scheduleWorkout: vi.fn(),
       getScheduledWorkouts: vi.fn(),
       deleteWorkout: vi.fn(),

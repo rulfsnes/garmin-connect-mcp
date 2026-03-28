@@ -396,6 +396,25 @@ export interface GetScheduledWorkoutsParams {
 }
 
 /**
+ * Parameters for getWorkouts tool
+ */
+export interface GetWorkoutsParams extends PaginationParams {
+  /**
+   * Starting index for pagination
+   * @default 0
+   * @minimum 0
+   */
+  start?: number;
+
+  /**
+   * Maximum number of workouts to return.
+   * When omitted, the tool fetches all workouts starting at `start`.
+   * @minimum 1
+   */
+  limit?: number;
+}
+
+/**
  * Parameters for deleteWorkout tool
  */
 export interface DeleteWorkoutParams {

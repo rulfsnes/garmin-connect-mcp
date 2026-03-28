@@ -24,6 +24,7 @@ describe('WorkoutTools', () => {
     // Create mock client with workout methods
     mockGarminClient = {
       createWorkout: vi.fn(),
+      getWorkouts: vi.fn(),
       scheduleWorkout: vi.fn(),
       getScheduledWorkouts: vi.fn(),
       deleteWorkout: vi.fn(),
@@ -1126,6 +1127,88 @@ describe('WorkoutTools', () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('startDate must be before or equal to endDate');
+    });
+  });
+
+  describe('getWorkouts - Input Validation', () => {
+    it('should reject negative start', async () => {
+      const result = await workoutTools.getWorkouts({ start: -1 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('start must be a non-negative integer');
+    });
+
+    it('should reject invalid limit', async () => {
+      const result = await workoutTools.getWorkouts({ limit: 0 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('limit must be a positive integer');
+    });
+  });
+
+  describe('getWorkouts - Success Cases', () => {
+    it('should fetch all workouts when limit is omitted', async () => {
+      vi.mocked(mockGarminClient.getWorkouts).mockResolvedValue([
+        {
+          workoutId: 123,
+          workoutName: 'Easy Run',
+          description: 'Zone 2 run',
+          sportType: { sportTypeId: 1, sportTypeKey: 'running', displayOrder: 1 },
+          estimatedDurationInSecs: 1800,
+          estimatedDistanceInMeters: 5000,
+          createdDate: '2025-01-15T10:00:00.000Z',
+          updateDate: '2025-01-16T10:00:00.000Z',
+        },
+        {
+          workoutId: 456,
+          workoutName: 'Gym Session',
+          description: '',
+          sportType: { sportTypeId: 5, sportTypeKey: 'strength_training', displayOrder: 2 },
+          estimatedDurationInSecs: 2700,
+          estimatedDistanceInMeters: null,
+          createdDate: '2025-01-17T10:00:00.000Z',
+          updateDate: '2025-01-18T10:00:00.000Z',
+        }
+      ] as any);
+
+      const result = await workoutTools.getWorkouts({});
+
+      expect(result.isError).toBeUndefined();
+      expect(mockGarminClient.getWorkouts).toHaveBeenCalledWith(0, undefined);
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+      expect(response.count).toBe(2);
+      expect(response.workouts[0].workoutName).toBe('Easy Run');
+      expect(response.workouts[0].estimatedDistance).toBe('5.00 km');
+      expect(response.workouts[1].description).toBe('No description');
+      expect(response.workouts[1].estimatedDistance).toBe('N/A');
+    });
+
+    it('should pass through pagination options', async () => {
+      vi.mocked(mockGarminClient.getWorkouts).mockResolvedValue([] as any);
+
+      const result = await workoutTools.getWorkouts({ start: 10, limit: 25 });
+
+      expect(result.isError).toBeUndefined();
+      expect(mockGarminClient.getWorkouts).toHaveBeenCalledWith(10, 25);
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.start).toBe(10);
+      expect(response.limit).toBe(25);
+    });
+  });
+
+  describe('getWorkouts - API Error Handling', () => {
+    it('should handle authentication errors', async () => {
+      vi.mocked(mockGarminClient.getWorkouts).mockRejectedValue(
+        new Error('authentication failed')
+      );
+
+      const result = await workoutTools.getWorkouts({});
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Authentication error');
     });
   });
 

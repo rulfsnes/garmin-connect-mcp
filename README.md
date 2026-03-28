@@ -20,7 +20,7 @@ This MCP server connects your AI assistant (Claude Desktop, Claude Code, or any 
 - **Real-time Health Insights**: Access sleep, heart rate, steps, stress, and body battery data
 - **Training Analytics**: Aggregate training volume by week, month, or custom date ranges
 - **Activity Analysis**: Retrieve detailed activity data with filtering and pagination
-- **Workout Management**: Create running and strength workouts, inspect workout details, and schedule them to the Garmin calendar
+- **Workout Management**: Create running and strength workouts, list saved workouts, inspect workout details, and schedule them to the Garmin calendar
 - **Multi-metric Summaries**: Get comprehensive daily health overviews
 
 **Tech Stack**: TypeScript, Node.js 20+, MCP SDK, garmin-connect library
@@ -56,6 +56,7 @@ This MCP server connects your AI assistant (Claude Desktop, Claude Code, or any 
 ### 🗓️ Workout Management
 - Create structured running workouts with repeat blocks and targets
 - Create structured strength workouts with exercises, sets, reps, duration, weight, and rest
+- List saved workouts from the Garmin Connect workout library
 - Schedule workouts to Garmin Connect calendar
 - Retrieve scheduled workouts and workout details
 - Delete workouts or unschedule them from the calendar
@@ -380,6 +381,9 @@ Create a structured running workout with warmup, interval, recovery, cooldown, r
 
 #### `create_strength_workout`
 Create a structured strength workout with named exercises, sets, reps or time, optional weight, and rest between exercises.
+
+#### `get_workouts`
+List saved workouts from the Garmin Connect workout library. By default, returns all workouts.
 
 #### `schedule_workout`
 Schedule an existing workout to a specific Garmin Connect calendar date.

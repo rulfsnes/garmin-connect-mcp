@@ -19,6 +19,7 @@ Direct API access examples for sleep, activities, health metrics, overview, and 
 - [Overview Tools](#overview-tools)
   - [Daily Overview](#example-daily-overview)
 - [Workout Tools](#workout-tools)
+  - [List Saved Workouts](#example-list-saved-workouts)
   - [Create Interval Workout](#example-create-interval-workout)
   - [Schedule Workout to Calendar](#example-schedule-workout-to-calendar)
 
@@ -495,6 +496,45 @@ Direct API access examples for sleep, activities, health metrics, overview, and 
 ---
 
 ## Workout Tools
+
+### Example: List Saved Workouts
+
+**Scenario:** Review all saved workouts in your Garmin Connect library before scheduling one.
+
+**MCP Request:**
+
+```json
+{
+  "tool": "get_workouts",
+  "parameters": {}
+}
+```
+
+**Response:**
+
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "{\"success\":true,\"start\":0,\"limit\":null,\"count\":2,\"workouts\":[{\"workoutId\":987654321,\"workoutName\":\"5x1000m Threshold Intervals\",\"description\":\"Threshold pace intervals with 2min recovery\",\"sportType\":\"running\",\"estimatedDuration\":\"45 minutes\",\"estimatedDistance\":\"9.00 km\",\"createdDate\":\"2025-10-19T08:00:00.000Z\",\"updatedDate\":\"2025-10-19T08:00:00.000Z\"},{\"workoutId\":999888777,\"workoutName\":\"Upper Body Strength\",\"description\":\"Press, pull, and core work\",\"sportType\":\"strength_training\",\"estimatedDuration\":\"30 minutes\",\"estimatedDistance\":\"N/A\",\"createdDate\":\"2025-10-19T09:00:00.000Z\",\"updatedDate\":\"2025-10-19T09:00:00.000Z\"}]}"
+  }]
+}
+```
+
+**Interpretation:**
+
+- `count` shows how many workouts were returned
+- Each item includes the Garmin `workoutId`, workout name, sport type, and estimated duration
+- Strength workouts typically return `estimatedDistance: N/A`
+
+**Actions:**
+- Use `workoutId` from this list with `schedule_workout`
+- Pass `start` and `limit` if you want paginated results instead of the full library
+- Follow up with `get_workout_details` if you want the full step structure for one workout
+
+**See also:**
+- [Create Interval Workout](#example-create-interval-workout) to add a new workout
+- [Schedule Workout to Calendar](#example-schedule-workout-to-calendar) to place a saved workout on a date
 
 ### Example: Create Interval Workout
 
