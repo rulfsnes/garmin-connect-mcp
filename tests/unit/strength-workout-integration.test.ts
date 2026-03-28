@@ -21,7 +21,7 @@ describe('WorkoutTools.createStrengthWorkout()', () => {
     description: null,
     updatedDate: '2026-03-28T10:00:00Z',
     createdDate: '2026-03-28T10:00:00Z',
-    sportType: { sportTypeId: 4, sportTypeKey: 'strength_training', displayOrder: 13 },
+    sportType: { sportTypeId: 5, sportTypeKey: 'strength_training', displayOrder: 13 },
   };
 
   beforeEach(() => {

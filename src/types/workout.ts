@@ -60,7 +60,7 @@ export const SPORT_TYPE_MAPPING = {
     displayOrder: 4,
   },
   strength_training: {
-    sportTypeId: 4,
+    sportTypeId: 5,
     sportTypeKey: 'strength_training',
     displayOrder: 13,
   },
