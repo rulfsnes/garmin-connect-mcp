@@ -209,6 +209,23 @@ export type DistanceUnit = typeof DISTANCE_UNIT_MAPPING[keyof typeof DISTANCE_UN
 export type DistanceUnitName = keyof typeof DISTANCE_UNIT_MAPPING;
 
 /**
+ * Weight unit mapping for strength workout steps.
+ *
+ * The Garmin workout detail payload exposes weightUnit as an object with a unitKey.
+ * We keep the payload minimal and only send the required unitKey.
+ */
+export const WEIGHT_UNIT_MAPPING = {
+  kilogram: {
+    unitKey: 'kilogram',
+  },
+  pound: {
+    unitKey: 'pound',
+  },
+} as const;
+
+export type WeightUnit = typeof WEIGHT_UNIT_MAPPING[keyof typeof WEIGHT_UNIT_MAPPING];
+
+/**
  * End condition for a workout step
  * Defines when a step should end (by time, distance, lap button, or iterations)
  *
@@ -315,6 +332,8 @@ export interface ExecutableStep {
   strokeType?: string | null;
   equipmentType?: string | null;
   category?: string | null;
+  weightValue?: number | null;
+  weightUnit?: WeightUnit | null;
   // Secondary target fields are optional (not sent to API unless specified)
   secondaryTargetType?: TargetType;
   secondaryTargetValueOne?: number;

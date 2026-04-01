@@ -90,22 +90,54 @@ describe('StrengthWorkoutBuilder', () => {
       }
     });
 
-    it('should store weightKg in the step description when provided', () => {
+    it('should set Garmin category and exercise keys when provided', () => {
+      const payload = new StrengthWorkoutBuilder('Test')
+        .addExercise({
+          name: 'Bench Press',
+          categoryKey: 'BENCH_PRESS',
+          exerciseKey: 'BARBELL_BENCH_PRESS',
+          sets: 1,
+          reps: 5,
+          restSeconds: 0,
+        })
+        .build();
+
+      const step = payload.workoutSegments[0].workoutSteps[0] as ExecutableStep;
+      expect(step.category).toBe('BENCH_PRESS');
+      expect(step.exerciseName).toBe('BARBELL_BENCH_PRESS');
+    });
+
+    it('should store weightKg as structured weight fields on the primary path', () => {
       const payload = new StrengthWorkoutBuilder('Test')
         .addExercise({ name: 'Bench Press', sets: 1, reps: 5, weightKg: 100, restSeconds: 0 })
         .build();
 
       const step = payload.workoutSegments[0].workoutSteps[0] as ExecutableStep;
-      expect(step.description).toBe('100kg');
+      expect(step.description).toBeNull();
+      expect(step.weightValue).toBe(100);
+      expect(step.weightUnit).toEqual({ unitKey: 'kilogram' });
     });
 
-    it('should set description to null when no weight provided', () => {
+    it('should keep weight fields null when no weight provided', () => {
       const payload = new StrengthWorkoutBuilder('Test')
         .addExercise({ name: 'Pull Up', sets: 1, reps: 8, restSeconds: 0 })
         .build();
 
       const step = payload.workoutSegments[0].workoutSteps[0] as ExecutableStep;
       expect(step.description).toBeNull();
+      expect(step.weightValue).toBeNull();
+      expect(step.weightUnit).toBeNull();
+    });
+
+    it('should store weightKg in description only when legacy weight fallback is enabled', () => {
+      const payload = new StrengthWorkoutBuilder('Test', { useLegacyWeightDescription: true })
+        .addExercise({ name: 'Bench Press', sets: 1, reps: 5, weightKg: 100, restSeconds: 0 })
+        .build();
+
+      const step = payload.workoutSegments[0].workoutSteps[0] as ExecutableStep;
+      expect(step.description).toBe('100kg');
+      expect(step.weightValue).toBeNull();
+      expect(step.weightUnit).toBeNull();
     });
 
     it('should append a rest step after sets when restSeconds > 0', () => {

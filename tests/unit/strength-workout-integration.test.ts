@@ -84,7 +84,37 @@ describe('WorkoutTools.createStrengthWorkout()', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('name is required');
+      expect(result.content[0].text).toContain('either name or categoryKey/exerciseKey is required');
+    });
+
+    it('should reject partial Garmin key input', async () => {
+      const result = await workoutTools.createStrengthWorkout({
+        name: 'Test',
+        exercises: [{ categoryKey: 'BENCH_PRESS', sets: 3, reps: 10 } as any],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('categoryKey and exerciseKey must be provided together');
+    });
+
+    it('should reject ambiguous exercise names', async () => {
+      const result = await workoutTools.createStrengthWorkout({
+        name: 'Test',
+        exercises: [{ name: 'Støt', sets: 3, reps: 10 }],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('ambiguous');
+    });
+
+    it('should reject unresolved exercise names', async () => {
+      const result = await workoutTools.createStrengthWorkout({
+        name: 'Test',
+        exercises: [{ name: 'Mystery Lift', sets: 3, reps: 10 }],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('unable to resolve exercise name');
     });
 
     it('should reject exercise with invalid sets', async () => {
@@ -139,6 +169,46 @@ describe('WorkoutTools.createStrengthWorkout()', () => {
   });
 
   describe('Success Cases', () => {
+    it('should resolve a legacy exercise name to Garmin category and exercise keys', async () => {
+      vi.mocked(mockGarminClient.createWorkout).mockResolvedValue(mockWorkoutResponse);
+
+      await workoutTools.createStrengthWorkout({
+        name: 'Upper Body Strength',
+        exercises: [
+          { name: 'Barbell Bench Press', sets: 3, reps: 8, weightKg: 80, restSeconds: 90 },
+        ],
+      });
+
+      const payload = vi.mocked(mockGarminClient.createWorkout).mock.calls[0][0];
+      const firstStep = payload.workoutSegments[0].workoutSteps[0];
+      expect(firstStep.category).toBe('BENCH_PRESS');
+      expect(firstStep.exerciseName).toBe('BARBELL_BENCH_PRESS');
+    });
+
+    it('should prefer explicit Garmin keys over the provided name', async () => {
+      vi.mocked(mockGarminClient.createWorkout).mockResolvedValue(mockWorkoutResponse);
+
+      await workoutTools.createStrengthWorkout({
+        name: 'Upper Body Strength',
+        exercises: [
+          {
+            name: 'Not Bench Press',
+            categoryKey: 'BENCH_PRESS',
+            exerciseKey: 'BARBELL_BENCH_PRESS',
+            sets: 3,
+            reps: 8,
+            weightKg: 80,
+            restSeconds: 90,
+          },
+        ],
+      });
+
+      const payload = vi.mocked(mockGarminClient.createWorkout).mock.calls[0][0];
+      const firstStep = payload.workoutSegments[0].workoutSteps[0];
+      expect(firstStep.category).toBe('BENCH_PRESS');
+      expect(firstStep.exerciseName).toBe('BARBELL_BENCH_PRESS');
+    });
+
     it('should create workout with reps-based exercise', async () => {
       vi.mocked(mockGarminClient.createWorkout).mockResolvedValue(mockWorkoutResponse);
 
@@ -194,8 +264,20 @@ describe('WorkoutTools.createStrengthWorkout()', () => {
       const result = await workoutTools.createStrengthWorkout({
         name: 'Superset',
         exercises: [
-          { name: 'Bicep Curl', sets: 3, reps: 12, restSeconds: 0 },
-          { name: 'Tricep Extension', sets: 3, reps: 12, restSeconds: 60 },
+          {
+            categoryKey: 'CURL',
+            exerciseKey: 'BARBELL_BICEPS_CURL',
+            sets: 3,
+            reps: 12,
+            restSeconds: 0,
+          },
+          {
+            categoryKey: 'TRICEPS_EXTENSION',
+            exerciseKey: 'OVERHEAD_DUMBBELL_TRICEPS_EXTENSION',
+            sets: 3,
+            reps: 12,
+            restSeconds: 60,
+          },
         ],
       });
 
@@ -216,6 +298,34 @@ describe('WorkoutTools.createStrengthWorkout()', () => {
 
       const payload = vi.mocked(mockGarminClient.createWorkout).mock.calls[0][0];
       expect(payload.description).toBe('A great workout');
+    });
+
+    it('should retry once with legacy weight description after a 400 on structured weight payloads', async () => {
+      vi.mocked(mockGarminClient.createWorkout)
+        .mockRejectedValueOnce(new Error('400 Bad Request'))
+        .mockResolvedValueOnce(mockWorkoutResponse);
+
+      const result = await workoutTools.createStrengthWorkout({
+        name: 'Upper Body Strength',
+        exercises: [
+          { name: 'Barbell Bench Press', sets: 3, reps: 8, weightKg: 80, restSeconds: 90 },
+        ],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mockGarminClient.createWorkout).toHaveBeenCalledTimes(2);
+
+      const firstPayload = vi.mocked(mockGarminClient.createWorkout).mock.calls[0][0];
+      const firstStep = firstPayload.workoutSegments[0].workoutSteps[0];
+      expect(firstStep.description).toBeNull();
+      expect(firstStep.weightValue).toBe(80);
+      expect(firstStep.weightUnit).toEqual({ unitKey: 'kilogram' });
+
+      const retryPayload = vi.mocked(mockGarminClient.createWorkout).mock.calls[1][0];
+      const retryStep = retryPayload.workoutSegments[0].workoutSteps[0];
+      expect(retryStep.description).toBe('80kg');
+      expect(retryStep.weightValue).toBeNull();
+      expect(retryStep.weightUnit).toBeNull();
     });
   });
 

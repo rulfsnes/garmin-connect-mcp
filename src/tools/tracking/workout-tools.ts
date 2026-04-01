@@ -24,9 +24,15 @@
 import { GarminClient } from '../../client/garmin-client.js';
 import { WorkoutBuilder, EndConditionFactory, TargetFactory } from '../../services/workoutBuilder.js';
 import { StrengthWorkoutBuilder } from '../../services/strengthWorkoutBuilder.js';
-import type { EndConditionData, Target, DistanceUnitName } from '../../types/workout.js';
+import type { EndConditionData, Target, DistanceUnitName, WorkoutPayload } from '../../types/workout.js';
 import { ToolResult } from '../../types/garmin-types.js';
 import { logger } from '../../utils/logger.js';
+import {
+  formatGarminExerciseCandidates,
+  getGarminExerciseByKeys,
+  getGarminStrengthExerciseDisplay,
+  resolveGarminExerciseByName,
+} from '../../data/garminExerciseCatalog.js';
 import {
   CreateRunningWorkoutParams,
   CreateStrengthWorkoutParams,
@@ -78,6 +84,17 @@ interface ScheduleWorkoutArgs {
 interface GetWorkoutsArgs {
   start: number;
   limit?: number;
+}
+
+interface ResolvedStrengthExerciseInput extends StrengthExerciseInput {
+  categoryKey: string;
+  exerciseKey: string;
+}
+
+interface ValidatedStrengthWorkoutArgs {
+  name: string;
+  description?: string;
+  exercises: ResolvedStrengthExerciseInput[];
 }
 
 /**
@@ -160,19 +177,20 @@ export class WorkoutTools {
   async createStrengthWorkout(params: CreateStrengthWorkoutParams): Promise<ToolResult> {
     try {
       const validated = this.validateStrengthInput(params);
+      const payload = this.buildStrengthWorkoutPayload(validated);
+      let response;
 
-      const builder = new StrengthWorkoutBuilder(validated.name);
+      try {
+        response = await this.garminClient.createWorkout(payload);
+      } catch (error) {
+        if (!this.shouldRetryStrengthWorkoutWithLegacyWeight(error, validated.exercises)) {
+          throw error;
+        }
 
-      if (validated.description) {
-        builder.setDescription(validated.description);
+        logger.warn('Retrying weighted strength workout with legacy description-based weight fallback');
+        const legacyPayload = this.buildStrengthWorkoutPayload(validated, { useLegacyWeightDescription: true });
+        response = await this.garminClient.createWorkout(legacyPayload);
       }
-
-      for (const exercise of validated.exercises) {
-        builder.addExercise(exercise);
-      }
-
-      const payload = builder.build();
-      const response = await this.garminClient.createWorkout(payload);
 
       return {
         content: [{
@@ -208,7 +226,7 @@ export class WorkoutTools {
    *
    * Intentional 'any' for runtime validation before type conversion
    */
-  private validateStrengthInput(args: any): CreateStrengthWorkoutParams {
+  private validateStrengthInput(args: any): ValidatedStrengthWorkoutArgs {
     if (!args.name || typeof args.name !== 'string' || args.name.trim() === '') {
       throw new Error('Workout name is required and must be a non-empty string');
     }
@@ -221,14 +239,10 @@ export class WorkoutTools {
       throw new Error('Exercises array is required and must contain at least one exercise');
     }
 
-    args.exercises.forEach((exercise: any, index: number) => {
-      this.validateExercise(exercise, index);
-    });
-
     return {
       name: args.name.trim(),
       description: args.description?.trim(),
-      exercises: args.exercises as StrengthExerciseInput[],
+      exercises: args.exercises.map((exercise: any, index: number) => this.validateExercise(exercise, index)),
     };
   }
 
@@ -237,11 +251,18 @@ export class WorkoutTools {
    *
    * Intentional 'any' for runtime validation before type conversion
    */
-  private validateExercise(exercise: any, index: number): void {
+  private validateExercise(exercise: any, index: number): ResolvedStrengthExerciseInput {
     const prefix = `Exercise ${index + 1}`;
+    const hasName = typeof exercise.name === 'string' && exercise.name.trim() !== '';
+    const hasCategoryKey = typeof exercise.categoryKey === 'string' && exercise.categoryKey.trim() !== '';
+    const hasExerciseKey = typeof exercise.exerciseKey === 'string' && exercise.exerciseKey.trim() !== '';
 
-    if (!exercise.name || typeof exercise.name !== 'string' || exercise.name.trim() === '') {
-      throw new Error(`${prefix}: name is required and must be a non-empty string`);
+    if (hasCategoryKey !== hasExerciseKey) {
+      throw new Error(`${prefix}: categoryKey and exerciseKey must be provided together`);
+    }
+
+    if (!hasName && !hasCategoryKey) {
+      throw new Error(`${prefix}: either name or categoryKey/exerciseKey is required`);
     }
 
     if (typeof exercise.sets !== 'number' || exercise.sets < 1 || !Number.isInteger(exercise.sets)) {
@@ -275,6 +296,75 @@ export class WorkoutTools {
         throw new Error(`${prefix}: restSeconds must be >= 0`);
       }
     }
+
+    const trimmedName = hasName ? exercise.name.trim() : undefined;
+    const categoryKey = hasCategoryKey ? exercise.categoryKey.trim() : undefined;
+    const exerciseKey = hasExerciseKey ? exercise.exerciseKey.trim() : undefined;
+
+    if (categoryKey && exerciseKey) {
+      const exactMatch = getGarminExerciseByKeys(categoryKey, exerciseKey);
+      if (!exactMatch) {
+        throw new Error(`${prefix}: unknown Garmin exercise keys ${categoryKey}:${exerciseKey}`);
+      }
+
+      return {
+        ...exercise,
+        name: trimmedName,
+        categoryKey,
+        exerciseKey,
+      };
+    }
+
+    const resolution = resolveGarminExerciseByName(trimmedName!);
+    if (resolution.match) {
+      return {
+        ...exercise,
+        name: trimmedName,
+        categoryKey: resolution.match.categoryKey,
+        exerciseKey: resolution.match.exerciseKey,
+      };
+    }
+
+    if (resolution.matches.length > 1) {
+      throw new Error(
+        `${prefix}: name "${trimmedName}" is ambiguous. Candidates: ${formatGarminExerciseCandidates(resolution.matches)}`
+      );
+    }
+
+    throw new Error(`${prefix}: unable to resolve exercise name "${trimmedName}" to a Garmin exercise`);
+  }
+
+  private buildStrengthWorkoutPayload(
+    validated: ValidatedStrengthWorkoutArgs,
+    options?: { useLegacyWeightDescription?: boolean }
+  ): WorkoutPayload {
+    const builder = new StrengthWorkoutBuilder(validated.name, options);
+
+    if (validated.description) {
+      builder.setDescription(validated.description);
+    }
+
+    for (const exercise of validated.exercises) {
+      builder.addExercise(exercise);
+    }
+
+    return builder.build();
+  }
+
+  private shouldRetryStrengthWorkoutWithLegacyWeight(
+    error: unknown,
+    exercises: ResolvedStrengthExerciseInput[]
+  ): boolean {
+    if (!exercises.some(exercise => exercise.weightKg !== undefined)) {
+      return false;
+    }
+
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return message.includes('400') || message.includes('bad request');
   }
 
   /**
@@ -1217,6 +1307,10 @@ export class WorkoutTools {
           type: step.stepType?.stepTypeKey || step.type,
         };
 
+        if (step.description) {
+          formattedStep.description = step.description;
+        }
+
         // Format duration/end condition
         if (step.endCondition) {
           const conditionKey = step.endCondition.conditionTypeKey;
@@ -1236,6 +1330,24 @@ export class WorkoutTools {
           } else if (conditionKey === 'iterations' && step.endConditionValue) {
             formattedStep.repetitions = step.endConditionValue;
           }
+        }
+
+        if (step.category || step.exerciseName) {
+          const display = getGarminStrengthExerciseDisplay(step.category, step.exerciseName);
+
+          if (step.category) {
+            formattedStep.categoryKey = step.category;
+            formattedStep.categoryDisplayName = display.categoryDisplayName;
+          }
+
+          if (step.exerciseName) {
+            formattedStep.exerciseKey = step.exerciseName;
+            formattedStep.exerciseDisplayName = display.exerciseDisplayName;
+          }
+        }
+
+        if (step.weightValue !== null && step.weightValue !== undefined) {
+          formattedStep.weight = this.formatWeightValue(step.weightValue, step.weightUnit?.unitKey);
         }
 
         // Format target
@@ -1277,6 +1389,18 @@ export class WorkoutTools {
     }
 
     return formattedSteps;
+  }
+
+  private formatWeightValue(value: number, unitKey?: string | null): string {
+    if (unitKey === 'pound') {
+      return `${value} lb`;
+    }
+
+    if (unitKey === 'kilogram' || !unitKey) {
+      return `${value} kg`;
+    }
+
+    return `${value} ${unitKey}`;
   }
 
   /**

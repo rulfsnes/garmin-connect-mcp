@@ -452,10 +452,20 @@ export interface GetWorkoutDetailsParams {
  */
 export interface StrengthExerciseInput {
   /**
-   * Exercise name (used for display in Garmin Connect)
+   * Exercise name. Used for legacy name-based resolution when Garmin keys are not provided.
    * @minLength 1
    */
-  name: string;
+  name?: string;
+
+  /**
+   * Garmin exercise category key. Must be paired with exerciseKey when provided.
+   */
+  categoryKey?: string;
+
+  /**
+   * Garmin exercise key. Must be paired with categoryKey when provided.
+   */
+  exerciseKey?: string;
 
   /**
    * Number of sets to perform

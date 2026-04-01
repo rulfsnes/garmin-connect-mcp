@@ -530,8 +530,16 @@ class GarminConnectMCPServer {
                     properties: {
                       name: {
                         type: "string",
-                        description: "Exercise name",
+                        description: "Exercise name for legacy name-based resolution. Optional when categoryKey and exerciseKey are provided.",
                         minLength: 1,
+                      },
+                      categoryKey: {
+                        type: "string",
+                        description: "Garmin exercise category key. Must be paired with exerciseKey when provided.",
+                      },
+                      exerciseKey: {
+                        type: "string",
+                        description: "Garmin exercise key. Must be paired with categoryKey when provided.",
                       },
                       sets: {
                         type: "number",
@@ -559,7 +567,7 @@ class GarminConnectMCPServer {
                         minimum: 0,
                       },
                     },
-                    required: ["name", "sets"],
+                    required: ["sets"],
                   },
                 },
               },

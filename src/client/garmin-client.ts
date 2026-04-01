@@ -56,19 +56,61 @@ export interface IWorkoutDetail {
       stepType: {
         stepTypeId: number;
         stepTypeKey: string;
+        displayOrder?: number;
       };
       endCondition: {
         conditionTypeId: number;
         conditionTypeKey: string;
+        displayOrder?: number;
+        displayable?: boolean;
       };
       endConditionValue: number | null;
+      preferredEndConditionUnit?: {
+        unitKey?: string | null;
+      } | null;
+      endConditionCompare?: number | null;
       targetType: {
         workoutTargetTypeId: number;
         workoutTargetTypeKey: string;
+        displayOrder?: number;
       };
       targetValueOne: number | null;
       targetValueTwo: number | null;
+      targetValueUnit?: {
+        unitKey?: string | null;
+      } | null;
       zoneNumber: number | null;
+      description?: string | null;
+      exerciseName?: string | null;
+      category?: string | null;
+      workoutProvider?: string | null;
+      providerExerciseSourceId?: string | null;
+      weightValue?: number | null;
+      weightUnit?: {
+        unitKey?: string | null;
+      } | null;
+      strokeType?: {
+        strokeTypeId?: number;
+        strokeTypeKey?: string | null;
+        displayOrder?: number;
+      } | null;
+      equipmentType?: {
+        equipmentTypeId?: number;
+        equipmentTypeKey?: string | null;
+        displayOrder?: number;
+      } | null;
+      secondaryTargetType?: {
+        workoutTargetTypeId: number;
+        workoutTargetTypeKey: string;
+        displayOrder?: number;
+      } | null;
+      secondaryTargetValueOne?: number | null;
+      secondaryTargetValueTwo?: number | null;
+      secondaryTargetValueUnit?: {
+        unitKey?: string | null;
+      } | null;
+      secondaryZoneNumber?: number | null;
+      endConditionZone?: number | null;
       numberOfIterations?: number;
       workoutSteps?: unknown[];
     }>;
